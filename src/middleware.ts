@@ -16,9 +16,7 @@ const handler = convexAuthNextjsMiddleware((request, { convexAuth }) => {
   }
 });
 
-// Next.js 16 renamed middleware to proxy — exporter les deux noms
 export default handler;
-export { handler as proxy };
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
