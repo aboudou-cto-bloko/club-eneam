@@ -11,8 +11,8 @@ const isPublicRoute = createRouteMatcher([
   "/pta",
 ]);
 
-const handler = convexAuthNextjsMiddleware((request, { convexAuth }) => {
-  if (!isPublicRoute(request) && !convexAuth.isAuthenticated()) {
+const handler = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  if (!isPublicRoute(request) && !(await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/connexion");
   }
 });
