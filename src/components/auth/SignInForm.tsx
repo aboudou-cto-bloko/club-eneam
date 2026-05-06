@@ -5,13 +5,47 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
 
 type Mode = "signIn" | "signUp";
 
 const FILIERES = ["IG", "GTL", "GBA", "PLAN", "GFC", "GRH"];
-
 const ANNEES = ["Licence 1", "Licence 2", "Licence 3"];
+
+const RULES = [
+  { label: "8 caractères minimum", test: (p: string) => p.length >= 8 },
+  { label: "Une lettre majuscule", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "Un chiffre ou caractère spécial", test: (p: string) => /[0-9!@#$%^&*\-_+=?.,:;]/.test(p) },
+];
+
+function parseError(err: unknown, mode: Mode): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const low = msg.toLowerCase();
+
+  if (low.includes("too many") || low.includes("toomanyfailed") || low.includes("rate")) {
+    return "Trop de tentatives échouées. Réessaie dans quelques minutes.";
+  }
+  if (mode === "signUp") {
+    if (low.includes("already exists") || low.includes("already exist")) {
+      return "Un compte existe déjà avec cet email.";
+    }
+    if (low.includes("password") || low.includes("short") || low.includes("weak")) {
+      return "Mot de passe trop faible (8 caractères, 1 majuscule, 1 chiffre ou symbole).";
+    }
+    if (low.includes("email") || low.includes("invalid")) {
+      return "Adresse email invalide.";
+    }
+    return "Erreur lors de la création du compte. Réessaie.";
+  }
+  // signIn
+  if (low.includes("invalid credentials") || low.includes("invalid secret") || low.includes("invalid account")) {
+    return "Email ou mot de passe incorrect.";
+  }
+  if (low.includes("not found") || low.includes("no account")) {
+    return "Aucun compte associé à cet email.";
+  }
+  return "Connexion impossible. Vérifie tes identifiants.";
+}
 
 const inputClass =
   "w-full h-9 px-3 rounded-[4px] border border-[#e4e4e4] text-[14px] text-[#202124] placeholder:text-[#909090] bg-white outline-none transition-all duration-100 focus:border-[#1a3a8f] focus:ring-2 focus:ring-[#1a3a8f]/10";
@@ -27,15 +61,27 @@ export function SignInForm() {
   const [mode, setMode] = useState<Mode>("signIn");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+
+  const passwordStrength = RULES.map((r) => ({ ...r, ok: r.test(password) }));
+  const passwordValid = passwordStrength.every((r) => r.ok);
+  const showStrength = mode === "signUp" && password.length > 0;
 
   function switchMode(next: Mode) {
     setMode(next);
     setError(null);
+    setPassword("");
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (mode === "signUp" && !passwordValid) {
+      setError("Le mot de passe ne respecte pas les critères requis.");
+      return;
+    }
+
     setLoading(true);
     const data = new FormData(e.currentTarget);
 
@@ -47,14 +93,14 @@ export function SignInForm() {
       });
 
       if (mode === "signUp") {
-        const nom = (data.get("nom") as string).trim();
-        const prenoms = (data.get("prenoms") as string).trim();
+        const nom = ((data.get("nom") as string) ?? "").trim();
+        const prenoms = ((data.get("prenoms") as string) ?? "").trim();
         const initiales = [prenoms[0], nom[0]].filter(Boolean).join("").toUpperCase() || "?";
         await createProfile({
-          nom,
-          prenoms,
-          filiere: data.get("filiere") as string,
-          annee: data.get("annee") as string,
+          nom: nom || "—",
+          prenoms: prenoms || undefined,
+          filiere: (data.get("filiere") as string) || undefined,
+          annee: (data.get("annee") as string) || undefined,
           role: "Membre",
           competences: [],
           initiales,
@@ -63,14 +109,7 @@ export function SignInForm() {
 
       router.push("/dashboard");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (mode === "signIn") {
-        setError("Email ou mot de passe incorrect.");
-      } else if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("existe")) {
-        setError("Un compte existe déjà avec cet email.");
-      } else {
-        setError("Erreur lors de la création du compte. Réessaie.");
-      }
+      setError(parseError(err, mode));
     } finally {
       setLoading(false);
     }
@@ -79,7 +118,6 @@ export function SignInForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
-      {/* Champs spécifiques à l'inscription */}
       {mode === "signUp" && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -88,7 +126,7 @@ export function SignInForm() {
                 Prénoms
               </label>
               <input
-                id="prenoms" name="prenoms" type="text" required autoComplete="given-name"
+                id="prenoms" name="prenoms" type="text" autoComplete="given-name"
                 placeholder="Marie Chloé"
                 className={inputClass}
               />
@@ -98,31 +136,32 @@ export function SignInForm() {
                 Nom de famille
               </label>
               <input
-                id="nom" name="nom" type="text" required autoComplete="family-name"
+                id="nom" name="nom" type="text" autoComplete="family-name"
                 placeholder="AHOUANSOU"
                 className={inputClass}
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="filiere" className="block text-[13px] font-medium text-[#202124]">
-              Filière
-            </label>
-            <select id="filiere" name="filiere" required className={selectClass} defaultValue="">
-              <option value="" disabled>Choisir une filière…</option>
-              {FILIERES.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="annee" className="block text-[13px] font-medium text-[#202124]">
-              Année d'études
-            </label>
-            <select id="annee" name="annee" required className={selectClass} defaultValue="">
-              <option value="" disabled>Choisir une année…</option>
-              {ANNEES.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="filiere" className="block text-[13px] font-medium text-[#202124]">
+                Filière <span className="text-[#909090] font-normal">(optionnel)</span>
+              </label>
+              <select id="filiere" name="filiere" className={selectClass} defaultValue="">
+                <option value="">—</option>
+                {FILIERES.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="annee" className="block text-[13px] font-medium text-[#202124]">
+                Année <span className="text-[#909090] font-normal">(optionnel)</span>
+              </label>
+              <select id="annee" name="annee" className={selectClass} defaultValue="">
+                <option value="">—</option>
+                {ANNEES.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
           </div>
 
           <hr className="border-[#e4e4e4]" />
@@ -148,11 +187,24 @@ export function SignInForm() {
           id="password" name="password" type="password" required
           autoComplete={mode === "signIn" ? "current-password" : "new-password"}
           placeholder="••••••••"
-          minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className={inputClass}
         />
-        {mode === "signUp" && (
-          <p className="text-[11px] text-[#909090]">8 caractères minimum</p>
+
+        {/* Validation en temps réel */}
+        {showStrength && (
+          <ul className="space-y-1 pt-1">
+            {passwordStrength.map(({ label, ok }) => (
+              <li key={label} className={`flex items-center gap-1.5 text-[12px] transition-colors duration-100 ${ok ? "text-[#22a84a]" : "text-[#909090]"}`}>
+                {ok
+                  ? <Check size={11} className="shrink-0" />
+                  : <X size={11} className="shrink-0" />
+                }
+                {label}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
@@ -164,17 +216,13 @@ export function SignInForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || (mode === "signUp" && showStrength && !passwordValid)}
         aria-busy={loading}
         className="w-full h-9 rounded-[25px] bg-[#1a3a8f] text-white text-[14px] font-medium hover:bg-[#152d70] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-[#1a3a8f] focus-visible:outline-offset-2 flex items-center justify-center gap-2"
       >
         {loading ? (
           <Loader2 size={15} className="animate-spin" aria-label="Chargement…" />
-        ) : mode === "signIn" ? (
-          "Se connecter"
-        ) : (
-          "Créer mon compte"
-        )}
+        ) : mode === "signIn" ? "Se connecter" : "Créer mon compte"}
       </button>
 
       <p className="text-center text-[13px] text-[#909090]">
