@@ -9,6 +9,9 @@ export default defineSchema({
   membres: defineTable({
     userId: v.id("users"),
     nom: v.string(),
+    prenoms: v.optional(v.string()),
+    filiere: v.optional(v.string()),
+    annee: v.optional(v.string()),
     role: v.string(), // "Coordinateur" | "Vice-coordinateur" | "Secrétaire" | "Trésorier" | "Membre"
     competences: v.array(v.string()),
     initiales: v.string(),

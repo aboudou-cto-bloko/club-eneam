@@ -33,6 +33,9 @@ export const me = query({
 export const createProfile = mutation({
   args: {
     nom: v.string(),
+    prenoms: v.optional(v.string()),
+    filiere: v.optional(v.string()),
+    annee: v.optional(v.string()),
     role: v.string(),
     competences: v.array(v.string()),
     initiales: v.string(),
