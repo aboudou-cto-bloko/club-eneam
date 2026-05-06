@@ -6,6 +6,7 @@ import {
 
 // Seules routes accessibles sans connexion
 const isPublicRoute = createRouteMatcher([
+  "/",
   "/connexion",
   "/pta",
 ]);
