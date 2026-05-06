@@ -11,7 +11,7 @@ type Mode = "signIn" | "signUp";
 
 const FILIERES = ["IG", "GTL", "GBA", "PLAN", "GFC", "GRH"];
 
-const ANNEES = ["Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"];
+const ANNEES = ["Licence 1", "Licence 2", "Licence 3"];
 
 const inputClass =
   "w-full h-9 px-3 rounded-[4px] border border-[#e4e4e4] text-[14px] text-[#202124] placeholder:text-[#909090] bg-white outline-none transition-all duration-100 focus:border-[#1a3a8f] focus:ring-2 focus:ring-[#1a3a8f]/10";
