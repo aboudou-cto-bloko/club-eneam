@@ -9,15 +9,7 @@ import { Loader2 } from "lucide-react";
 
 type Mode = "signIn" | "signUp";
 
-const FILIERES = [
-  "Management des Organisations",
-  "Économie et Finance",
-  "Comptabilité, Contrôle, Audit",
-  "Marketing et Commerce",
-  "Gestion des Ressources Humaines",
-  "Statistique et Économétrie",
-  "Autre",
-];
+const FILIERES = ["IG", "GTL", "GBA", "PLAN", "GFC", "GRH"];
 
 const ANNEES = ["Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"];
 

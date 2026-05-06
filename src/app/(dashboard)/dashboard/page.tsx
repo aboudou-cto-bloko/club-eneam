@@ -10,6 +10,14 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Calendar, Megaphone, Rocket, Users, Bell, Plus, Trash2, X } from "lucide-react";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
+function useGreeting(prenoms?: string | null) {
+  const h = new Date().getHours();
+  const salut = h >= 18 ? "Bonsoir" : "Bonjour";
+  const emoji = h >= 18 ? "🌙" : h >= 12 ? "☀️" : "🌅";
+  const prenom = prenoms?.split(" ")[0] ?? null;
+  return { salut, emoji, prenom };
+}
+
 const typeConfig: Record<string, { icon: React.ElementType; iconColor: string; bg: string }> = {
   Événement: { icon: Calendar, iconColor: "text-[#1a3a8f]", bg: "bg-[#e8eef9]" },
   Conférence: { icon: Megaphone, iconColor: "text-[#1a3a8f]", bg: "bg-[#e8eef9]" },
@@ -28,11 +36,13 @@ const selectClass =
 
 export default function DashboardPage() {
   const user = useCurrentUser();
+  const monProfil = useQuery(api.membres.me);
   const annonces = useQuery(api.annonces.list) ?? [];
   const projets = useQuery(api.projets.list) ?? [];
   const membres = useQuery(api.membres.list) ?? [];
   const createAnnonce = useMutation(api.annonces.create);
   const removeAnnonce = useMutation(api.annonces.remove);
+  const { salut, emoji, prenom } = useGreeting(monProfil?.prenoms);
 
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,7 +68,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-[#0f172a]">Tableau de bord</h1>
+        <p className="text-[22px] font-bold text-[#0f172a] leading-snug">
+          {salut}{prenom ? `, ${prenom}` : ""} {emoji}
+        </p>
         <p className="text-sm text-muted-foreground mt-1">
           Semestre 2 · 2025/2026 — Club Entrepreneuriat ENEAM
         </p>

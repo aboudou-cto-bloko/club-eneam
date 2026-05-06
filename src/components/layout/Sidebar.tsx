@@ -135,13 +135,15 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           <Home size={14} aria-hidden="true" />
           <span>Retour au site</span>
         </Link>
-        <button
-          onClick={() => signOut()}
-          className="flex items-center gap-2 px-1 text-[13px] text-[#909090] hover:text-[#d93025] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-[#d93025] focus-visible:rounded w-full"
-        >
-          <LogOut size={14} aria-hidden="true" />
-          <span>Se déconnecter</span>
-        </button>
+        {user && (
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-2 px-1 text-[13px] text-[#909090] hover:text-[#d93025] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-[#d93025] focus-visible:rounded w-full"
+          >
+            <LogOut size={14} aria-hidden="true" />
+            <span>Se déconnecter</span>
+          </button>
+        )}
         <div className="flex items-center gap-2 px-1">
           <Image
             src="/assets/logo-eneam.png"
