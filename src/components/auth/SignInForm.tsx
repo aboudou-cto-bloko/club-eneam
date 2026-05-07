@@ -21,30 +21,30 @@ const RULES = [
 function parseError(err: unknown, mode: Mode): string {
   const msg = err instanceof Error ? err.message : String(err);
   const low = msg.toLowerCase();
+  console.error("[auth error]", msg);
 
-  if (low.includes("too many") || low.includes("toomanyfailed") || low.includes("rate")) {
+  if (low.includes("too many failed") || low.includes("toomanyfailed")) {
     return "Trop de tentatives échouées. Réessaie dans quelques minutes.";
   }
   if (mode === "signUp") {
     if (low.includes("already exists") || low.includes("already exist")) {
-      return "Un compte existe déjà avec cet email.";
+      return "Un compte existe déjà avec cet email. Connecte-toi plutôt.";
     }
     if (low.includes("password") || low.includes("short") || low.includes("weak")) {
       return "Mot de passe trop faible (8 caractères, 1 majuscule, 1 chiffre ou symbole).";
     }
-    if (low.includes("email") || low.includes("invalid")) {
+    if (low.includes("invalid") && low.includes("email")) {
       return "Adresse email invalide.";
     }
-    return "Erreur lors de la création du compte. Réessaie.";
+    return `Erreur lors de l'inscription : ${msg}`;
   }
-  // signIn
   if (low.includes("invalid credentials") || low.includes("invalid secret") || low.includes("invalid account")) {
     return "Email ou mot de passe incorrect.";
   }
   if (low.includes("not found") || low.includes("no account")) {
     return "Aucun compte associé à cet email.";
   }
-  return "Connexion impossible. Vérifie tes identifiants.";
+  return `Erreur : ${msg}`;
 }
 
 const inputClass =
@@ -91,28 +91,29 @@ export function SignInForm() {
         password: data.get("password") as string,
         flow: mode,
       });
-
-      if (mode === "signUp") {
-        const nom = ((data.get("nom") as string) ?? "").trim();
-        const prenoms = ((data.get("prenoms") as string) ?? "").trim();
-        const initiales = [prenoms[0], nom[0]].filter(Boolean).join("").toUpperCase() || "?";
-        await createProfile({
-          nom: nom || "—",
-          prenoms: prenoms || undefined,
-          filiere: (data.get("filiere") as string) || undefined,
-          annee: (data.get("annee") as string) || undefined,
-          role: "Membre",
-          competences: [],
-          initiales,
-        });
-      }
-
-      router.push("/dashboard");
     } catch (err) {
       setError(parseError(err, mode));
-    } finally {
       setLoading(false);
+      return;
     }
+
+    // Auth réussie — créer le profil en arrière-plan (ne bloque pas la navigation)
+    if (mode === "signUp") {
+      const nom = ((data.get("nom") as string) ?? "").trim();
+      const prenoms = ((data.get("prenoms") as string) ?? "").trim();
+      const initiales = [prenoms[0], nom[0]].filter(Boolean).join("").toUpperCase() || "?";
+      createProfile({
+        nom: nom || "—",
+        prenoms: prenoms || undefined,
+        filiere: (data.get("filiere") as string) || undefined,
+        annee: (data.get("annee") as string) || undefined,
+        role: "Membre",
+        competences: [],
+        initiales,
+      }).catch(console.error);
+    }
+
+    router.push("/dashboard");
   }
 
   return (
